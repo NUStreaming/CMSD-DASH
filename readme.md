@@ -1,11 +1,19 @@
 # CMSD-DASH
 <!-- CMSD-enabled dash.js prototype for paper titled: "Use of CMCD in HTTP Adaptive Streaming: Initial Findings" to appear in ACM NOSSDAV 2021. [Here](CMCD_Results_2020_04.pdf) is an early version presented in the DASH-IF special session on April 9th, 2021. -->
 
+## Installation
+
+- Additional Nginx modules 
+    - `ngx_http_js_module.so` (v0.7.0): Install the NJS module in NGINX using `sudo apt install nginx-module-njs`
+    - `ngx_http_echo_module.so` (v0.62): See https://github.com/openresty/echo-nginx-module#installation 
+        - Create tmp Nginx installation folder
+        - Download and install Nginx with `--add-dynamic-module=<PATH_TO_ECHO-NGINX-MODULE>` (note: temp Nginx *must* be same version as existing Nginx; temp Nginx *must* be installed with same config args as existing Nginx (can change prefix to tmp install folder) - see `nginx -V` for version and config args)
+        - Copy module's .so file in tmp install folder to existing Nginx `/modules` folder (eg. to `/usr/lib/nginx/modules/`)
+
 ## Setup and Testing
 
 <!-- Run the NGINX server:
 - Navigate to the `server/` folder
-- Install the NJS module in NGINX using `sudo apt install nginx-module-njs`
 - Open `nginx/config/nginx.conf` and edit `<PATH_TO_CMSD-DASH>` (under "`location /media/vod`") to indicate the absolute path to this repository
 - Launch NGINX using `sudo nginx -c <PATH_TO_CMSD-DASH>/server/nginx/config/nginx.conf` (note that the absolute path must be used)
 - Reload NGINX using `sudo nginx -c <PATH_TO_CMSD-DASH>/server/nginx/config/nginx.conf -s reload`, if the configuration has changed
