@@ -105,8 +105,8 @@ function getBufferBasedDelay(r) {
     var paramsObj = processQueryArgs(r);
 
     // If required args are not present in query, skip rate control
-    if (!('bl' in paramsObj) || !('com.example-bmx' in paramsObj) || !('com.example-bmn' in paramsObj) || !('ot' in paramsObj)) {
-        writeLog('- missing "bl", "com.example-bmx", "com.example-bmn" or "ot" params, ignoring response delay..');
+    if (!('bl' in paramsObj) || !('com.example-bmn' in paramsObj) || !('ot' in paramsObj) || !('br' in paramsObj) || !('d' in paramsObj) || !('mtp' in paramsObj)) {
+        writeLog('Missing one or more required params, ignoring response delay..');
         return 0;   // disables response delay
     }
 
@@ -118,9 +118,14 @@ function getBufferBasedDelay(r) {
 
     var delay;
     var bMin = Number(paramsObj['com.example-bmn']);
-    var bMax = Number(paramsObj['com.example-bmx']);
+    // var bMax = Number(paramsObj['com.example-bmx']); // not needed for now
     var bufferLength = Number(paramsObj['bl']);
-    writeLog('.. bMin = ' + bMin + ', bMax = ' + bMax + ', bl = ' + bufferLength);
+    writeLog('.. bMin = ' + bMin + ', bl = ' + bufferLength);
+    
+    var nextBitrate = Number(paramsObj['br']);
+    var segDuration = Number(paramsObj['d']) / 1000;    // convert ms to s
+    var measuredTput = Number(paramsObj['mtp']);
+    writeLog('.. nextBitrate = ' + nextBitrate + ', segDuration = ' + segDuration + ', measuredTput = ' + measuredTput);
 
     // Read config file values
     var latestDelay = readConfig('latestDelay')
@@ -141,16 +146,18 @@ function getBufferBasedDelay(r) {
     if (bufferLength < bMin) {
         writeLog('Critical client found!!');
         
-        var newDelay = 10;  // should set to expected download time of this client
-                            // ie. (requested_bitrate / est_tput)
+        var segSize = nextBitrate * segDuration;
+        var newDelay = segSize / measuredTput;  // computed as expected segment download duration
 
         writeLog('.. newDelay = ' + newDelay + ', currentDelay = ' + currentDelay);
         if (newDelay > currentDelay) {  // update $latestDelay
             writeConfig('latestDelay', newDelay);
             writeConfig('latestDelayTimestamp', currentTimestamp);
+
+            writeLog('.. updated $latestDelay = ' + newDelay);
         }
         else {
-            writeLog('- No update to $latestDelay..')
+            writeLog('.. no update to $latestDelay')
         }
 
         delay = 0   // impt to set this critical client's request to delay=0
@@ -163,7 +170,7 @@ function getBufferBasedDelay(r) {
         delay = currentDelay
     }
     
-    writeLog('Setting delay = ' + delay + ' s!');
+    writeLog('Serving current client delay = ' + delay + ' s!');
     return delay;
 }
 
