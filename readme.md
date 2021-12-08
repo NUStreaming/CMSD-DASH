@@ -25,23 +25,23 @@ Run the dash.js client:
 - Build, watch file changes and launch samples page using `grunt dev`
 - Test the dash.js application by navigating to `http://⟨MachineIP_ADDRESS⟩:3000/samples/cmsd-dash/index.html` to view the CMSD-enabled player
 
-<!-- Run the experiment:
+Run the experiment:
 - Navigate to the `dash-test/` folder
 - Install the dependencies using `npm install`
 - Edit `network_profile` in `dash-test/package.json` to specify the desired bandwidth profile for the test. The list of available bandwidth profiles are given in `dash-test/tc-network-profiles/`
-- Edit `maxCapacityBitsPerS` in `cmcd-server/nginx/cmcd_njs.js` according to the selected bandwidth profile. Reload the NGINX config since we made a configuration change
+<!-- - Edit `maxCapacityBitsPerS` in `cmcd-server/nginx/cmcd_njs.js` according to the selected bandwidth profile. Reload the NGINX config since we made a configuration change -->
 - Edit `client_profile` in `dash-test/package.json` to specify the desired client profile (with CMCD or NO CMCD). There are two client profiles:
     - client_profile_join_test_with_cmcd.js
     - client_profile_join_test_no_cmcd.js
 - Update the setup parameters in the two client profile files based on the target scenario, such as the numberof clients (`numClient`), minimum buffer (`minBufferGlobal`), maximum buffer (`maxBufferGlobal`), video location (`url`) and segment duration (`segmentDuration`). The set of video datasets are located in `cmcd-server/nginx/media/vod/`
 - Start a test using `npm run test-multiple-clients`. Note that testing is done in Chrome headless mode by default
-- Alternatively, to do a batch test with consecutive repeated runs for CMCD and NO CMCD (e.g., a batch test of five CMCD and five NO CMCD runs), update the parameters in the two client profile files and `batch_test.sh` and then run the batch test script with `sudo bash batch_test.sh`
+<!-- - Alternatively, to do a batch test with consecutive repeated runs for CMCD and NO CMCD (e.g., a batch test of five CMCD and five NO CMCD runs), update the parameters in the two client profile files and `batch_test.sh` and then run the batch test script with `sudo bash batch_test.sh`
     - Note that the parameter values in `batch_test.sh` will overwrite those in `package.json`, hence there is no need to edit the latter for this batch test run
     - Note that the `jq` tool must be installed to use the batch test script: `sudo apt-get install jq`
-    - If the batch test script is terminated prematurely, the background Chrome processes need to be killed
+    - If the batch test script is terminated prematurely, the background Chrome processes need to be killed -->
 - Once the runs are finished, clear any previous tc setup using `sudo bash tc-network-profiles/kill.sh` (this must be run before starting any new run)
 - On completing the test run, results are generated in the `results/<timestamp>_multiple_clients/` folder ordered by the test run’s timestamp
-- To generate summary results across all clients in a test run, first navigate to the `results/` folder and then run `python generate_summary.py` -->
+- To generate summary results across all clients in a test run, first navigate to the `results/` folder and then run `python generate_summary.py`
 
 
 

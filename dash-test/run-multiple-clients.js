@@ -10,7 +10,7 @@ const clientProfile = require(process.env.npm_package_config_client_profile);
 const CHROME_PATH = "/opt/google/chrome/chrome";
 //const CHROME_PATH ="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
-const {QoeEvaluator, QoeInfo} = require("../dash.js/samples/cmcd-dash/abr/LoLp_QoEEvaluation.js");
+const {QoeEvaluator, QoeInfo} = require("../dash.js/samples/cmsd-dash/abr/LoLp_QoEEvaluation.js");
 
 // To run bash commands
 const exec = require('child_process').exec
@@ -327,7 +327,7 @@ if (!batchTestEnabled) {
         );
         */
         
-        let url="http://localhost:3000/samples/cmcd-dash/index.html";
+        let url="http://localhost:3000/samples/cmsd-dash/index.html";
         // add paremeters
         url=url+"?videoUrl="+videoUrl+"&minBuffer="+minBuffer+"&maxBuffer="+maxBuffer;
         console.log("going to url with puppeteer: "+url);
@@ -354,6 +354,7 @@ if (!batchTestEnabled) {
 
         //
         // Stabilization feature
+        // (removed for cmcd/cmsd projects due to having clients joining at diff times)
         //
         // console.log("Waiting for 10 seconds of uninterrupted max-quality playback before starting.");
         // const stabilized = await awaitStabilization(page);
@@ -367,6 +368,7 @@ if (!batchTestEnabled) {
         //   return;
         // }
         // console.log("Player is stable at the max quality, beginning network emulation");
+        // end stabilization
 
         page.evaluate(() => {
           window.startRecording();

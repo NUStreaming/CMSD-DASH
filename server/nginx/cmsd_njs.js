@@ -75,13 +75,22 @@ function processQueryArgs(r) {
 }
 
 //
-// Sample query: http://localhost:8080/bufferBasedResponseDelay/media/vod/bbb_30fps_akamai/bbb_30fps.mpd?CMCD=bl%3D21300
+// Sample query: http://localhost:8080/cmsd-njs/bufferBasedResponseDelay/media/vod/bbb_30fps_akamai/bbb_30fps.mpd?CMCD=bl%3D21300
 //
 function getResourceUsingSubrequestBBRD(r) {
     writeLog('');
-    writeLog('### New request: ' + r.uri + ' ###');
-    writeLog('args: ' + r.variables.args);
-    var dashObjUri = r.uri.split('/cmsd-njs/bufferBasedResponseDelay')[1];
+    writeLog('### getResourceUsingSubrequestBBRD(r) triggered: ' + r.uri);
+    // writeLog('.. args: ' + r.variables.args);
+
+    // var dashObjUri = r.uri.split('/cmsd-njs/bufferBasedResponseDelay')[1];
+    
+    // Different parsing for BBRD compared to BBRC due to use of echo_sleep and echo_exec
+    var dashObjUri = r.variables.args.split('/cmsd-njs/bufferBasedResponseDelay')[1].split('?')[0];
+    var cmcdArgs = r.variables.args.split(dashObjUri + '?')[1].split(' ')[0];
+
+    writeLog('.. dashObjUri: ' + dashObjUri)
+    writeLog('.. cmcdArgs: ' + cmcdArgs)
+    
     function done(res) {
         r.return(res.status, res.responseBody);
     }
@@ -101,7 +110,7 @@ function getResourceUsingSubrequestBBRD(r) {
 //
 function getBufferBasedDelay(r) {
     writeLog('');
-    writeLog('getBufferBasedDelay() triggered!');
+    writeLog('### getBufferBasedDelay() triggered!');
     var paramsObj = processQueryArgs(r);
 
     // If required args are not present in query, skip rate control

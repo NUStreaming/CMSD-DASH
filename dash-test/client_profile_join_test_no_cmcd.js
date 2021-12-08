@@ -12,10 +12,11 @@
  */
 /* Single Akamai video */
 
-const url = "http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd";    // w/o bufferBasedRateControl
+const url = "http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd";    // w/o bufferBasedResponseDelay
 const segmentDuration = 4;
 const minBufferGlobal = segmentDuration;
 const maxBufferGlobal = segmentDuration * 2;
+// const maxBufferGlobal = segmentDuration * 3;
 /*
 const minBufferGlobal = segmentDuration * 3;
 const maxBufferGlobal = segmentDuration * 6;
@@ -65,7 +66,7 @@ const maxBufferGlobal = segmentDuration * 6;
 const clients =  [
     {
         joinDurationInMs: 0,
-        numClient: 10,
+        numClient: 4,
         videoUrl: url,
         minBuffer: minBufferGlobal,
         maxBuffer: maxBufferGlobal
