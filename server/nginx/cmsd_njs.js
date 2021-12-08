@@ -105,8 +105,9 @@ function getBufferBasedDelay(r) {
     var paramsObj = processQueryArgs(r);
 
     // If required args are not present in query, skip rate control
-    if (!('bl' in paramsObj) || !('com.example-bmn' in paramsObj) || !('ot' in paramsObj) || !('br' in paramsObj) || !('d' in paramsObj) || !('mtp' in paramsObj)) {
+    if (!('bl' in paramsObj) || !('com.example-bmx' in paramsObj) || !('com.example-bmn' in paramsObj) || !('ot' in paramsObj) || !('br' in paramsObj) || !('d' in paramsObj) || !('mtp' in paramsObj)) {
         writeLog('Missing one or more required params, ignoring response delay..');
+        writeLog(JSON.stringify(paramsObj))
         return 0;   // disables response delay
     }
 
@@ -118,16 +119,16 @@ function getBufferBasedDelay(r) {
 
     var delay;
     var bMin = Number(paramsObj['com.example-bmn']);
-    // var bMax = Number(paramsObj['com.example-bmx']); // not needed for now
+    var bMax = Number(paramsObj['com.example-bmx']);
     var bufferLength = Number(paramsObj['bl']);
-    writeLog('.. bMin = ' + bMin + ', bl = ' + bufferLength);
+    writeLog('.. bMin = ' + bMin + '.. bMax = ' + bMax + ', bl = ' + bufferLength);
     
     var nextBitrate = Number(paramsObj['br']);
     var segDuration = Number(paramsObj['d']) / 1000;    // convert ms to s
     var measuredTput = Number(paramsObj['mtp']);
     writeLog('.. nextBitrate = ' + nextBitrate + ', segDuration = ' + segDuration + ', measuredTput = ' + measuredTput);
 
-    // Read config file values
+    // Retrieve $latestDelay in nginx.conf and compute delay to be applied
     var latestDelay = readConfig('latestDelay')
     if (latestDelay == null)    latestDelay = 0
     var latestDelayTimestamp = readConfig('latestDelayTimestamp')
@@ -144,7 +145,7 @@ function getBufferBasedDelay(r) {
     // ($latestDelay will be retrieved by all other non-critical clients)
     //
     if (bufferLength < bMin) {
-        writeLog('Critical client found!!');
+        writeLog('[case1] Critical client found !!');
         
         var segSize = nextBitrate * segDuration;
         var newDelay = segSize / measuredTput;  // computed as expected segment download duration
@@ -164,13 +165,20 @@ function getBufferBasedDelay(r) {
     }
     
     //
-    // Case 2: All other non-critical clients; retrieve $latestDelay in nginx.conf and compute delay to be applied
+    // Case 2: Client is in surplus; apply delay
     //
+    else if (bufferLength > bMax) {
+        writeLog('[case2] Surplus client found')
+        delay = currentDelay;
+    }
+
+    // Case 3: All other (normal) clients; apply delay
     else {
-        delay = currentDelay
+        writeLog('[case3] Normal client found')
+        delay = 0.5 * currentDelay;
     }
     
-    writeLog('Serving current client delay = ' + delay + ' s!');
+    writeLog('Serving current client with delay = ' + delay + ' s!');
     return delay;
 }
 
