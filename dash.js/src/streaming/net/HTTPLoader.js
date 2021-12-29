@@ -100,9 +100,10 @@ function HTTPLoader(cfg) {
             request.requestEndDate = new Date();
             request.firstByteDate = request.firstByteDate || requestStartTime;
 
-            // Extension to dash.js for [CMSD-DASH]
+            // Extension to dash.js for [CMSD-DASH] -- start
             request.responseHeaders = httpRequest.response && httpRequest.response.getAllResponseHeaders ? httpRequest.response.getAllResponseHeaders() :
             httpRequest.response ? httpRequest.response.responseHeaders : [];
+            // Extension to dash.js for [CMSD-DASH] -- end
 
             if (!request.checkExistenceOnly) {
                 dashMetrics.addHttpRequest(request, httpRequest.response ? httpRequest.response.responseURL : null,
