@@ -14,18 +14,23 @@ do
     currentScriptName=`basename "$0"`
     if [[ "$f" != *"$currentScriptName"* ]];
     then
-        echo "Running: '$ sudo pkill -f ${f}'"
-        sudo pkill -f ${f}
+        # echo "Running: '$ sudo pkill -f ${f}'"
+        # sudo pkill -f ${f}
+
+        ## Only kill process if exist
+        if pgrep -f ${f}; then echo "Running: '$ sudo pkill -f ${f}'"; sudo pkill -f ${f}; fi
     fi
 done
 
-sudo pkill tc
-#sudo pkill tc
+# sudo pkill tc     ## Causes issues w my ubuntu when ran >1 times; interface del should suffice to clear rules
 
-sudo tc qdisc delete dev lo root handle 1:0
-sudo tc qdisc delete dev lo root handle 1:0
-sudo tc qdisc delete dev lo root handle 1:0
-sudo tc qdisc delete dev lo root handle 1:0
-sudo tc qdisc delete dev lo root handle 1:0
+# sudo tc qdisc delete dev lo root handle 1:0
+# sudo tc qdisc delete dev lo root handle 1:0
+# sudo tc qdisc delete dev lo root handle 1:0
+# sudo tc qdisc delete dev lo root handle 1:0
+# sudo tc qdisc delete dev lo root handle 1:0
+
+## Only delete interface if exist
+sudo tc qdisc delete dev lo root handle 1:0 2>/dev/null || true
 
 echo '---------- Shaping End -----------'
