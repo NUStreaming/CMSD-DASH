@@ -1,5 +1,6 @@
 # CMSD-DASH
-<!-- CMSD-enabled dash.js prototype for paper titled: "Use of CMCD in HTTP Adaptive Streaming: Initial Findings" to appear in ACM NOSSDAV 2021. [Here](CMCD_Results_2020_04.pdf) is an early version presented in the DASH-IF special session on April 9th, 2021. -->
+CMSD-enabled dash.js + Nginx prototype for paper titled: "The Benefits of Server Hinting When DASHing or HLSing" as submitted to MHV'22. 
+<!-- [Here](CMCD_Results_2020_04.pdf) is an early version presented in the DASH-IF special session on April 9th, 2021. -->
 
 ## Installation
 
@@ -12,17 +13,17 @@
 
 ## Setup and Testing
 
-<!-- Run the NGINX server:
+Run the NGINX server:
 - Navigate to the `server/` folder
 - Open `nginx/config/nginx.conf` and edit `<PATH_TO_CMSD-DASH>` (under "`location /media/vod`") to indicate the absolute path to this repository
 - Launch NGINX using `sudo nginx -c <PATH_TO_CMSD-DASH>/server/nginx/config/nginx.conf` (note that the absolute path must be used)
 - Reload NGINX using `sudo nginx -c <PATH_TO_CMSD-DASH>/server/nginx/config/nginx.conf -s reload`, if the configuration has changed
-- Test the NJS application `cmsd_njs.js` with CMCD using `http://⟨MachineIP_ADDRESS⟩:8080/cmsd-njs/testProcessQuery?CMCD=bl%3D21300` and verify that it returns a value of 21300 for buffer length (bl) -->
+<!-- - Test the NJS application `cmsd_njs.js` with CMSD using `http://⟨MachineIP_ADDRESS⟩:8080/cmsd-njs/testProcessQuery?CMCD=bl%3D21300` and verify that it returns a value of 21300 for buffer length (bl) -->
 
 Run the dash.js client:
-- Navigate to the `dash.js/` folder
+- Navigate to the `dash.j-4.2.1/` folder
 - Install the dependencies using `npm install`
-- Build, watch file changes and launch samples page using `grunt dev`
+- Build, watch file changes and launch samples page using `npm run start` (or `grunt dev` for `dash.js/` folder which uses dash.js v3.1.3)
 - Test the dash.js application by navigating to `http://⟨MachineIP_ADDRESS⟩:3000/samples/cmsd-dash/index.html` to view the CMSD-enabled player
 
 Run the experiment:
@@ -35,10 +36,10 @@ Run the experiment:
     - client_profile_join_test_no_cmcd.js
 - Update the setup parameters in the two client profile files based on the target scenario, such as the numberof clients (`numClient`), minimum buffer (`minBufferGlobal`), maximum buffer (`maxBufferGlobal`), video location (`url`) and segment duration (`segmentDuration`). The set of video datasets are located in `cmcd-server/nginx/media/vod/`
 - Start a test using `npm run test-multiple-clients`. Note that testing is done in Chrome headless mode by default
-<!-- - Alternatively, to do a batch test with consecutive repeated runs for CMCD and NO CMCD (e.g., a batch test of five CMCD and five NO CMCD runs), update the parameters in the two client profile files and `batch_test.sh` and then run the batch test script with `sudo bash batch_test.sh`
+- Alternatively, to do a batch test with consecutive repeated runs for CMSD and NO CMSD (e.g., a batch test of five CMSD and five NO CMSD runs), update the parameters in the two client profile files and `batch_test.sh` and then run the batch test script with `sudo bash batch_test.sh`
     - Note that the parameter values in `batch_test.sh` will overwrite those in `package.json`, hence there is no need to edit the latter for this batch test run
     - Note that the `jq` tool must be installed to use the batch test script: `sudo apt-get install jq`
-    - If the batch test script is terminated prematurely, the background Chrome processes need to be killed -->
+    - If the batch test script is terminated prematurely, the background Chrome processes need to be killed
 - Once the runs are finished, clear any previous tc setup using `sudo bash tc-network-profiles/kill.sh` (this must be run before starting any new run)
 - On completing the test run, results are generated in the `results/<timestamp>_multiple_clients/` folder ordered by the test run’s timestamp
 - To generate summary results across all clients in a test run, first navigate to the `results/` folder and then run `python generate_summary.py`
@@ -49,18 +50,18 @@ Run the experiment:
 
 There are three main components in this setup and they correspond to the three main sub-folders:
 
-- `server`: NGINX/NJS server
-- `dash.js`: dash.js client
-- `dash-test`: Automated testing with Puppeteer and scripts
+- `/server`: NGINX/NJS server
+- `/dash.js` / `/dash.js-4.2.1`: dash.js client (v3.1.3 / v4.2.1)
+- `/dash-test`: Automated testing with Puppeteer and scripts
 
 
 ### NGINX Server
 
 - NGINX JS (NJS) webserver and middleware (NGINX v1.18)
-<!-- - See `nginx/cmcd_njs.js` for more details on the NJS application logic and implementation
-    - Note that request URLs that are prefixed with `/cmcd-njs/bufferBasedRateControl` refer to CMCD requests and will trigger the NJS rate control mechanism
-    - Example request with CMCD: `http://localhost:8080/cmcd-njs/bufferBasedRateControl/media/vod/bbb_30fps_akamai/bbb_30fps.mpd` 
-    - Example request with NO CMCD: `http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd` -->
+- See `nginx/cmsd_njs.js` for more details on the NJS application logic and implementation
+    - Note that request URLs that are prefixed with `/cmsd-njs/bufferBasedResponseDelay` refer to CMSD requests and will trigger the NJS delayed response mechanism
+    - Example request with CMCD: `http://localhost:8080/cmsd-njs/bufferBasedResponseDelay/media/vod/bbb_30fps_akamai/bbb_30fps.mpd?CMCD=<cmcd_params>` 
+    - Example request with NO CMCD: `http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd`
 
 Other useful commands:
 - Check if NGINX is running:
@@ -76,9 +77,9 @@ Other useful commands:
 
 ### dash.js Client
 
-- Official dash.js reference player integrated with CMCD support (dash.js v3.1.3) and customized with CMSD support
+- Official dash.js reference player integrated with CMCD support (dash.js v3.1.3 / v4.2.1) and customized with additional CMSD support as required in the paper
 <!-- - Refer to `dash.js/samples/advanced/cmcd.html` for the offical CMCD-enabled sample player (basic sample) -->
-- Refer to `dash.js/samples/cmsd-dash/index.html` for our setup's dash.js client (we added CMSD support, metrics collection and other supplementary features for our setup)
+- Refer to `dash.js/samples/cmsd-dash/index.html` and customized `src` files (`src/streaming/net/HTTPLoader.js`, `src/streaming/rules/ThroughputHistory.js`) for our setup's dash.js client (we added CMSD support, metrics collection and other supplementary features for our setup)
 
 ### Automated Testing with Puppeteer and Scripts
 

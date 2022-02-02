@@ -1,9 +1,9 @@
 var querystring = require('querystring');
 var fs = require('fs');
 
-var LOGFILE = '/tmp/cmsd.log';  // most other directories wont work due to write permission
-var CSVFILE = '/tmp/cmsd.csv';  // most other directories wont work due to write permission
-var CONFIGFILE = '/tmp/cmsd_config.json';
+var LOGFILE = '/cmsd_logs/cmsd.log';  // most other directories wont work due to (recursive) write permission
+var CSVFILE = '/cmsd_logs/cmsd.csv';
+var CONFIGFILE = '/cmsd_logs/cmsd_config.json';
 
 function writeLog(msg) {
     var dateTime = new Date().toLocaleString();
@@ -36,6 +36,8 @@ function writeCsv(metricsObj) {
         fs.appendFileSync(CSVFILE, csvLine);
     } catch (e) {
         // unable to write to file
+        fs.appendFileSync(CSVFILE, "ERROR: Unable to write to file");
+        fs.appendFileSync(CSVFILE, e);
     }
 }
 
@@ -118,7 +120,7 @@ function getResourceUsingSubrequestBBRD(r) {
     writeLog('.. r.variables.bufferBasedDelay: ' + r.variables.bufferBasedDelay)
     
     function done(res) {
-        r.headersOut['CMSD-Dynamic'] = ('com.example.dl=' + r.variables.bufferBasedDelay);
+        r.headersOut['CMSD-Dynamic'] = ('com.example-dl=' + r.variables.bufferBasedDelay);
         r.headersOut['Access-Control-Expose-Headers'] = ['CMSD-Dynamic'];
 
         r.return(res.status, res.responseBody);
@@ -157,6 +159,12 @@ function getBufferBasedDelay(r) {
         return 0;   // disables response delay
     }
 
+    if ('sid' in paramsObj) { metricsObj['sid'] = paramsObj['sid']; }
+    else { metricsObj['sid'] = -1; }
+
+    if ('did' in paramsObj) { metricsObj['did'] = paramsObj['did']; }
+    else { metricsObj['did'] = '-1'; }
+
     var delay;
     var bMin = Number(paramsObj['com.example-bmn']);
     var bMax = Number(paramsObj['com.example-bmx']);
@@ -165,7 +173,9 @@ function getBufferBasedDelay(r) {
     writeLog('.. bMin = ' + bMin + '.. bMax = ' + bMax + ', bl = ' + bufferLength);
     metricsObj['bufferMin'] = bMin
     metricsObj['bufferMax'] = bMax
-    metricsObj['bufferLength'] = bufferLength
+
+    if (metricsObj['did'] == 'dash.js-v4.2.1') metricsObj['bufferLength'] = bufferLength / 1000 // v4.2.1 uses ms; convert to s
+    else metricsObj['bufferLength'] = bufferLength  // v3.1.3 uses seconds
     
     var nextBitrate = Number(paramsObj['br']);
     var segDuration = Number(paramsObj['d']) / 1000;    // convert ms to s

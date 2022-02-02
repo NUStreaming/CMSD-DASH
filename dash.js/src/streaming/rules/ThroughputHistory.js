@@ -96,7 +96,7 @@ function ThroughputHistory(config) {
         // Extension to dash.js for [CMSD-DASH] -- start
         let throughput;
         let headers = parseResponseHeaders(httpRequest._responseHeaders);
-        if ('cmsd-dynamic' in headers && headers['cmsd-dynamic'].split('=')[0] == 'com.example.dl') {
+        if ('cmsd-dynamic' in headers && headers['cmsd-dynamic'].split('=')[0] == 'com.example-dl') {
             const cmsdDelayInSeconds = parseInt(headers['cmsd-dynamic'].split('=')[1]);
             const throughputMeasureTimeCmsd = throughputMeasureTime + (cmsdDelayInSeconds * 1000);
             throughput = Math.round((8 * downloadBytes) / throughputMeasureTimeCmsd); // bits/ms = kbits/s // [CMSD-DASH]
