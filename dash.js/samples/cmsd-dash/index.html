@@ -10,6 +10,12 @@
         var player;
         var ruleUsed = '';
 
+        const UUIDGeneratorBrowser = () =>
+            ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+                (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+        );
+        const mysid = UUIDGeneratorBrowser();
+
         function getQueryParams() {
             var vars = {};
             var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,  
@@ -21,9 +27,11 @@
     
         function init() {
             var video,
-                url = "http://localhost:8080/cmsd-njs/bufferBasedResponseDelay/media/vod/bbb_30fps_akamai/bbb_30fps.mpd",    // w/ bufferBasedResponseDelay
-                // url = "http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd",  // w/o bufferBasedResponseDelay
+                // url = "http://localhost:8080/cmsd-njs/bufferBasedResponseDelay/media/vod/bbb_30fps_akamai/bbb_30fps.mpd",    // w/ bufferBasedResponseDelay
+                url = "http://localhost:8080/media/vod/bbb_30fps_akamai/bbb_30fps.mpd",  // w/o bufferBasedResponseDelay
                 // url = "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",       // dash.js default
+                // url = "http://localhost:8080/cmsd-njs/bufferBasedResponseDelay/media/vod/BBB1sAkamai/bbb1sAkamai.mpd",    // w/ bufferBasedResponseDelay
+                // url = "http://localhost:8080/media/vod/BBB1sAkamai/bbb1sAkamai.mpd",  // w/o bufferBasedResponseDelay
                 version,
                 httpParams=getQueryParams(),
                 minBuffer=4,
@@ -53,9 +61,20 @@
                 streaming: {
                     cmcd: {
                         enabled: true, /* enable reporting of cmcd parameters */
-                        sid: 'b248658d-1d1a-4039-91d0-8c08ba597da5', /* session id send with each request */
+                        // sid: 'b248658d-1d1a-4039-91d0-8c08ba597da5', /* session id send with each request */
+                        sid: mysid,
                         cid: '21cf726cfe3d937b5f974f72bb5bd06a', /* content id send with each request */
                         did: 'dash.js-v' + version/* device id send with each request */
+                    },
+                    abr: {
+                        useDefaultABRRules: true,
+                        ABRStrategy: 'abrThroughput',
+                        additionalAbrRules: {
+                            insufficientBufferRule: false,
+                            switchHistoryRule: false,
+                            droppedFramesRule: false,
+                            abandonRequestsRule: false
+                        }
                     }
                 }
             });
@@ -209,6 +228,7 @@
             
             player.on(dashjs.MediaPlayer.events.FRAGMENT_LOADING_COMPLETED, (e) => { 
                 console.warn('Fragment loading completed', e);
+                console.warn('player.getSettings().streaming', player.getSettings().streaming);
             });
 
         window.startRecording = () => {
@@ -222,6 +242,7 @@
                 byDownload: {},
                 overall: {},
                 abrStrategy: '',
+                sid: '',
                 customPlaybackControl: null,
                 misc: {}
             };
@@ -233,14 +254,16 @@
                 // switchRequests: [],
                 stallDurationMs: 0,
                 numStalls: 0,
-                averageLatency: 0,
-                averageBufferLength: 0,
-                currentLatency: 0,
-                currentBufferLength: 0
+                delayDurationS: -1,
+                averageLatency: -1,
+                averageBufferLength: -1,
+                currentLatency: -1,
+                currentBufferLength: -1
             };
 
             // Record the abrStrategy and if customPlaybackControl was used
             window.abrHistory.abrStrategy = ruleUsed;
+            window.abrHistory.sid = mysid;
 
             // Record the initial quality
             recordSwitch(player.getBitrateInfoListFor('video')[player.getQualityFor('video')]);
@@ -286,6 +309,11 @@
                 
                 history.currentLatency = currentLatency;
                 history.currentBufferLength = currentBuffer;
+                
+                var headers = parseResponseHeaders(e.request.responseHeaders);
+                if ('cmsd-dynamic' in headers && headers['cmsd-dynamic'].split('=')[0] == 'com.example-dl') {
+                    history.delayDurationS = parseInt(headers['cmsd-dynamic'].split('=')[1]);
+                }
 
                 // get segment key e.g. 'chunk-stream0-00010'
                 let urlParsed = e.request.url.split('/');
@@ -391,6 +419,25 @@
                     return str;
                 }
                 else return date;
+            }
+
+            function parseResponseHeaders(headerStr) {
+                let headers = {};
+                if (!headerStr) {
+                    return headers;
+                }
+
+                // Trim headerStr to fix a MS Edge bug with xhr.getAllResponseHeaders method
+                // which send a string starting with a "\n" character
+                let headerPairs = headerStr.trim().split('\u000d\u000a');
+                for (let i = 0, ilen = headerPairs.length; i < ilen; i++) {
+                    let headerPair = headerPairs[i];
+                    let index = headerPair.indexOf('\u003a\u0020');
+                    if (index > 0) {
+                        headers[headerPair.substring(0, index)] = headerPair.substring(index + 2);
+                    }
+                }
+                return headers;
             }
 
             // player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_REQUESTED, (e) => {
