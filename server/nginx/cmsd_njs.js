@@ -141,6 +141,7 @@ function getResourceUsingSubrequestBBRD(r) {
 //
 function getBufferBasedDelay(r) {
     var metricsObj = {}
+    metricsObj['timestamp'] = Math.round(new Date().getTime() / 1000);
 
     writeLog('');
     writeLog('### getBufferBasedDelay() triggered!');
@@ -168,14 +169,22 @@ function getBufferBasedDelay(r) {
     var delay;
     var bMin = Number(paramsObj['com.example-bmn']);
     var bMax = Number(paramsObj['com.example-bmx']);
-    var bufferLength = Number(paramsObj['bl']);
     
-    writeLog('.. bMin = ' + bMin + '.. bMax = ' + bMax + ', bl = ' + bufferLength);
+    writeLog('.. bMin = ' + bMin + '.. bMax = ' + bMax);
     metricsObj['bufferMin'] = bMin
     metricsObj['bufferMax'] = bMax
 
-    if (metricsObj['did'] == 'dash.js-v4.2.1') metricsObj['bufferLength'] = bufferLength / 1000 // v4.2.1 uses ms; convert to s
-    else metricsObj['bufferLength'] = bufferLength  // v3.1.3 uses seconds
+    var bufferLength;
+    writeLog(".. metricsObj['did']: " + metricsObj['did']);
+    writeLog(".. " + (metricsObj['did'].indexOf( 'dash.js-v4.2.1' ) > -1))
+    if (metricsObj['did'].indexOf( 'dash.js-v4.2.1' ) > -1) {        // v4.2.1 uses ms; convert to s
+        bufferLength = Number(paramsObj['bl']) / 1000;
+    }  
+    else {                                               // v3.1.3 uses seconds
+        bufferLength = Number(paramsObj['bl']);
+    }
+    writeLog('.. bl = ' + bufferLength)
+    metricsObj['bufferLength'] = bufferLength;
     
     var nextBitrate = Number(paramsObj['br']);
     var segDuration = Number(paramsObj['d']) / 1000;    // convert ms to s
@@ -186,58 +195,60 @@ function getBufferBasedDelay(r) {
     metricsObj['segDuration'] = segDuration
     metricsObj['measuredTput'] = measuredTput
 
-    // Retrieve $latestDelay in nginx.conf and compute delay to be applied
-    var latestDelay = readConfig('latestDelay')
-    if (latestDelay == null)    latestDelay = 0
-    var latestDelayTimestamp = readConfig('latestDelayTimestamp')
-    if (latestDelayTimestamp == null)    latestDelayTimestamp = 0
+    // Retrieve $lastRecordedDelay in nginx.conf and compute delay to be applied
+    var lastRecordedDelay = readConfig('lastRecordedDelay')
+    if (lastRecordedDelay == null)    lastRecordedDelay = 0
+    var lastRecordedDelayTimestamp = readConfig('lastRecordedDelayTimestamp')
+    if (lastRecordedDelayTimestamp == null)    lastRecordedDelayTimestamp = 0
 
-    writeLog('.. latestDelay = ' + latestDelay + 's, latestDelayTimestamp = ' + latestDelayTimestamp + 's');
-    metricsObj['latestDelay'] = latestDelay
-    metricsObj['latestDelayTimestamp'] = latestDelayTimestamp
+    writeLog('.. lastRecordedDelay = ' + lastRecordedDelay + 's, lastRecordedDelayTimestamp = ' + lastRecordedDelayTimestamp + 's');
+    metricsObj['lastRecordedDelay'] = lastRecordedDelay
+    metricsObj['lastRecordedDelayTimestamp'] = lastRecordedDelayTimestamp
 
     // Compute current delay after taking into account time passed
     var currentTimestamp = Math.round(new Date().getTime() / 1000);
-    var timePassed = currentTimestamp - latestDelayTimestamp;
-    var currentDelay = Math.max(0, (latestDelay - timePassed));
+    var timePassed = currentTimestamp - lastRecordedDelayTimestamp;
+    var currentDelay = Math.max(0, (lastRecordedDelay - timePassed));
 
     writeLog('.. currentDelay = ' + currentDelay + 's');
     metricsObj['currentDelay'] = currentDelay
 
     var expectedSegDownloadTime = (nextBitrate * segDuration) / measuredTput;
-    var expectedBufferLengthAfterDelayedDownload =  bufferLength - expectedSegDownloadTime - currentDelay;
+    var expectedBufferLengthAfterDelayedDownload =  Math.max(0, bufferLength - expectedSegDownloadTime - currentDelay);
 
     writeLog('.. expectedSegDownloadTime = ' + expectedSegDownloadTime + 's, expectedBufferLengthAfterDelayedDownload = ' + expectedBufferLengthAfterDelayedDownload + 's');
     metricsObj['expectedSegDownloadTime'] = expectedSegDownloadTime
     metricsObj['expectedBufferLengthAfterDelayedDownload'] = expectedBufferLengthAfterDelayedDownload
     
     //
-    // Case 1: Client is critical; update $latestDelay in nginx.conf and return delay=0 for this client
-    // ($latestDelay will be retrieved by all other non-critical clients)
+    // Case 1: Client is critical; update $lastRecordedDelay in nginx.conf and return delay=0 for this client
+    // ($lastRecordedDelay will be retrieved by all other non-critical clients)
     //
     if (bufferLength < bMin) {
         writeLog('[case1] Critical client found !!');
         metricsObj['case'] = '1-critical'
         
         // var segSize = nextBitrate * segDuration;
-        // var newDelay = segSize / measuredTput;  // computed as expected segment download duration
+        // var newDelay = segSize / measuredTput;  // Computed as expected segment download duration
         var newDelay = expectedSegDownloadTime;
 
         writeLog('.. newDelay = ' + newDelay + ', currentDelay = ' + currentDelay);
-        if (newDelay > currentDelay) {  // update $latestDelay
-            writeConfig('latestDelay', newDelay);
-            writeConfig('latestDelayTimestamp', currentTimestamp);
+        if (newDelay > currentDelay) {
+            writeConfig('lastRecordedDelay', newDelay);     // Update $lastRecordedDelay in config file
+            writeConfig('lastRecordedDelayTimestamp', currentTimestamp);
 
-            writeLog('.. updated $latestDelay = ' + newDelay);
-            metricsObj['delayUpdateToConfig'] = newDelay
+            writeLog('.. updated $lastRecordedDelay = ' + newDelay);
+            metricsObj['delayUpdateToConfig'] = newDelay    // Add to metrics logging file
             metricsObj['delayTimestampUpdateToConfig'] = currentTimestamp
         }
-        else {
-            writeLog('.. no update to $latestDelay')
-            metricsObj['delayUpdateToConfig'] = -1
-        }
 
-        delay = 0   // impt to set this critical client's request to delay=0
+        delay = 0   // Impt to set this critical client's request to delay=0
+    }
+
+    if (!'delayUpdateToConfig' in metricsObj) {
+        writeLog('.. no update to $lastRecordedDelay')
+        metricsObj['delayUpdateToConfig'] = -1          // Add to metrics logging file
+        metricsObj['delayTimestampUpdateToConfig'] = -1
     }
     
     //
@@ -249,7 +260,7 @@ function getBufferBasedDelay(r) {
         metricsObj['delayUpdateToConfig'] = -1
     // else if (expectedBufferLengthAfterDelayedDownload > bMax) {
     //     writeLog('[case2] Surplus client found, expectedBufferLengthAfterDelayedDownload: ' + expectedBufferLengthAfterDelayedDownload);
-        delay = currentDelay;
+        delay = Math.max(0, currentDelay);
     }
 
     // Case 3: All other (normal) clients [bMin, bMax]; apply delay
@@ -262,7 +273,7 @@ function getBufferBasedDelay(r) {
         // delay = 0.5 * currentDelay;
         
         var bRange = bMax - bMin;
-        delay = Math.round((((bufferLength - bMin) / bRange) * currentDelay), 2);
+        delay = Math.max(0, Math.round((((bufferLength - bMin) / bRange) * currentDelay), 2));
     }
     
     writeLog('Serving current client with delay = ' + delay + ' s!');
