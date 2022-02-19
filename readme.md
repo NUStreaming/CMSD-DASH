@@ -21,9 +21,9 @@ Run the NGINX server:
 <!-- - Test the NJS application `cmsd_njs.js` with CMSD using `http://⟨MachineIP_ADDRESS⟩:8080/cmsd-njs/testProcessQuery?CMCD=bl%3D21300` and verify that it returns a value of 21300 for buffer length (bl) -->
 
 Run the dash.js client:
-- Navigate to the `dash.j-4.2.1/` folder
+- Navigate to the `dash.js/` folder (dash.js v3.1.3)
 - Install the dependencies using `npm install`
-- Build, watch file changes and launch samples page using `npm run start` (or `grunt dev` for `dash.js/` folder which uses dash.js v3.1.3)
+- Build, watch file changes and launch samples page using `grunt dev`
 - Test the dash.js application by navigating to `http://⟨MachineIP_ADDRESS⟩:3000/samples/cmsd-dash/index.html` to view the CMSD-enabled player
 
 Run the experiment:
@@ -51,7 +51,7 @@ Run the experiment:
 There are three main components in this setup and they correspond to the three main sub-folders:
 
 - `/server`: NGINX/NJS server
-- `/dash.js` / `/dash.js-4.2.1`: dash.js client (v3.1.3 / v4.2.1)
+- `/dash.js`: dash.js client (v3.1.3)
 - `/dash-test`: Automated testing with Puppeteer and scripts
 
 
@@ -77,7 +77,7 @@ Other useful commands:
 
 ### dash.js Client
 
-- Official dash.js reference player integrated with CMCD support (dash.js v3.1.3 / v4.2.1) and customized with additional CMSD support as required in the paper
+- Official dash.js (v3.1.3) reference player integrated with CMCD support and customized with additional CMSD support as required in the paper
 <!-- - Refer to `dash.js/samples/advanced/cmcd.html` for the offical CMCD-enabled sample player (basic sample) -->
 - Refer to `dash.js/samples/cmsd-dash/index.html` and customized `src` files (`src/streaming/net/HTTPLoader.js`, `src/streaming/rules/ThroughputHistory.js`) for our setup's dash.js client (we added CMSD support, metrics collection and other supplementary features for our setup)
 
